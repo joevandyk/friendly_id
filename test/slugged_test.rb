@@ -1,4 +1,5 @@
 require File.expand_path("../helper.rb", __FILE__)
+require 'logger'
 
 class Journalist < ActiveRecord::Base
   extend FriendlyId
@@ -108,7 +109,6 @@ class SlugGeneratorTest < MiniTest::Unit::TestCase
       assert_equal "peugeuot-206--2", record2.slug
     end
   end
-
 end
 
 class SlugSeparatorTest < MiniTest::Unit::TestCase
@@ -117,7 +117,10 @@ class SlugSeparatorTest < MiniTest::Unit::TestCase
 
   class Journalist < ActiveRecord::Base
     extend FriendlyId
-    friendly_id :name, :use => :slugged, :sequence_separator => ":"
+    friendly_id :name,
+                :use => :slugged,
+                :sequence_separator => ":",
+                :matched_sequence_separators => /aa|:|bb/
   end
 
   def model_class
@@ -128,6 +131,13 @@ class SlugSeparatorTest < MiniTest::Unit::TestCase
     with_instance_of model_class do |record|
       record2 = model_class.create! :name => record.name
       assert record2.friendly_id.match(/:2\z/)
+    end
+  end
+
+  test "should be able to find records with configured sequence separator matcher" do
+    with_instance_of model_class do |record|
+      record2 = model_class.create! :name => record.name
+      assert_equal record2, model_class.find(record2.slug)
     end
   end
 
@@ -173,10 +183,18 @@ class SluggedRegressionsTest < MiniTest::Unit::TestCase
   end
 
   test "should increment the slug sequence for duplicate friendly ids beyond 10" do
+    old_logger = ActiveRecord::Base.logger
+    ActiveRecord::Base.logger = Logger.new(STDERR)
     with_instance_of model_class do |record|
       (2..12).each do |i|
-        r = model_class.create! :name => record.name
-        assert r.friendly_id.match(/#{i}\z/)
+        begin
+          r = model_class.new :name => record.name
+          r.save!
+          assert r.friendly_id.match(/#{i}\z/)
+        rescue ActiveRecord::StatementInvalid
+          p r
+    ActiveRecord::Base.logger = old_logger
+        end
       end
     end
   end

@@ -5,6 +5,7 @@ module FriendlyId
       module Slugged
         test "configuration should have a sequence_separator" do
           assert !model_class.friendly_id_config.sequence_separator.empty?
+          assert !model_class.friendly_id_config.matched_sequence_separators.empty?
         end
 
         test "should make a new slug if the friendly_id method value has changed" do

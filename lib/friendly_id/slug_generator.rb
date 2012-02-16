@@ -13,7 +13,7 @@ module FriendlyId
     # Given a slug, get the next available slug in the sequence.
     def next
       # Don't assume that the separator is unique within the slug
-      sequence = conflict.to_param.gsub(/^#{Regexp.quote(normalized)}(#{Regexp.quote(separator)})?/, '').to_i
+      sequence = conflict.to_param.gsub(/^#{Regexp.escape(normalized)}(#{matched_separators})?/, '').to_i
       next_sequence = sequence == 0 ? 2 : sequence.next
       "#{normalized}#{separator}#{next_sequence}"
     end
@@ -56,8 +56,12 @@ module FriendlyId
       friendly_id_config.sequence_separator
     end
 
+    def matched_separators
+      friendly_id_config.matched_sequence_separators
+    end
+
     def wildcard
-      "#{normalized}#{separator}%"
+      "#{normalized}#{matched_separators}%"
     end
   end
 end

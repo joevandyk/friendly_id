@@ -189,7 +189,15 @@ issue}[https://github.com/norman/friendly_id/issues/180] for discussion.
       model_class.instance_eval do
         friendly_id_config.class.send :include, Configuration
         friendly_id_config.defaults[:slug_column]        ||= 'slug'
-        friendly_id_config.defaults[:sequence_separator] ||= '--'
+
+        if friendly_id_config.defaults[:sequence_separator].blank?
+          friendly_id_config.defaults[:sequence_separator] = '--'
+          friendly_id_config.defaults[:matched_sequence_separators] = /--|–|—|―/ # double hyphen, en dash, em dash, horizontal bar
+        elsif friendly_id_config.defaults[:matched_sequence_separators].blank?
+          friendly_id_config.defaults[:matched_sequence_separators] =
+            Regexp.quote(friendly_id_config.defaults[:sequence_separator])
+        end
+
         friendly_id_config.slug_generator_class          ||= Class.new(SlugGenerator)
         before_validation :set_slug
       end
@@ -244,7 +252,7 @@ issue}[https://github.com/norman/friendly_id/issues/180] for discussion.
       return false if base.nil? && slug_value.nil?
       return true if new_record?
       slug_base = normalize_friendly_id(base)
-      separator = Regexp.escape friendly_id_config.sequence_separator
+      separator = friendly_id_config.matched_sequence_separators
       slug_base != (current_friendly_id || slug_value).try(:sub, /#{separator}[\d]*\z/, '')
     end
 
@@ -263,7 +271,7 @@ issue}[https://github.com/norman/friendly_id/issues/180] for discussion.
     # +:slug_generator_class+ configuration options to
     # {FriendlyId::Configuration FriendlyId::Configuration}.
     module Configuration
-      attr_writer :slug_column, :sequence_separator
+      attr_writer :slug_column, :sequence_separator, :matched_sequence_separators
       attr_accessor :slug_generator_class
 
       # Makes FriendlyId use the slug column for querying.
@@ -288,6 +296,11 @@ issue}[https://github.com/norman/friendly_id/issues/180] for discussion.
       def sequence_separator
         @sequence_separator or defaults[:sequence_separator]
       end
+
+      def matched_sequence_separators
+        @matched_sequence_separators or defaults[:matched_sequence_separators]
+      end
+
 
       # The column that will be used to store the generated slug.
       def slug_column
