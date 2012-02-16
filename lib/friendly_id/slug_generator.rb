@@ -57,7 +57,7 @@ module FriendlyId
     end
 
     def matched_separators
-      friendly_id_config.matched_sequence_separators
+      friendly_id_config.matched_sequence_separators.source
     end
 
     def wildcard
